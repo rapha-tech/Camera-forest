@@ -2,7 +2,7 @@
 
 int main()
 {
-	print("hello world");
+	print("hello");
 	return 1;
 	// This is a comment
 }
