@@ -2,7 +2,6 @@
 
 int main()
 {
-<<<<<<< HEAD
 	print("hello");
 	return 1;
 }
