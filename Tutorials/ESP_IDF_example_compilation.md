@@ -1,21 +1,21 @@
-# How to compile an example program on ESP-IDF 6.1 for ESP32-P4?
+# How to compile an example program on ESP-IDF 5.5 for ESP32-P4?
 
-1: Launch ESP-IDF 6.1
+1: Launch ESP-IDF 5.5 via the shortcut on your desktop
 
-2: Go into your file manager and search for your ESP-IDF installation, usually `C:\Espressif\frameworks\`
+2: Go into your file manager and search for your ESP-IDF installation, usually `C:\esp\esp-idf-v5.5.5\`
 
-3: Locate the example folder `C:\Espressif\frameworks\esp-idf-v5.3.2\examples`
+3: Locate the example folder `C:\esp\esp-idf-v5.5.5\examples`
 
-4: Locate the example you want to test. Example: hello_world `C:\Espressif\frameworks\esp-idf-v5.3.2\examples\get-started\hello_world`
+4: Locate the example you want to test. Example: hello_world `C:\esp\esp-idf-v5.5.5\examples\get-started\hello_world`
 
 5: Make a copy of this example somewhere else on your PC. 
 
-6: Copy the path of your copy of the example and cd into it on your IDF shell `cd C:\documents\hello_world`
+6: Copy the path of your copy of the example and `cd` into it on your IDF shell. For example, if you copied the example in your documents directory `cd C:\documents\hello_world`
 
 7: To check that everything is fine you can do `dir` which should return atleast : `main & CMakeLists.txt`
 
 8: Now you will have to specify your ESP32 target chip (here ESP32-P4): `idf.py set-target esp32p4`
->note: you only have to type this command once
+> note: you only have to type this command once
 
 9: The ESP32-P4 chip we use is an older 1.0 version, we jave to specify it. Type `idf.py menuconfig`
 
@@ -28,6 +28,8 @@
 13: Now you can flash the program to your ESP32-P4 using `idf.py flash`
 
 14: If you want to open the Serial monitor you can type `idf.py monitor`
+
+15: press `Ctrl + t` then `Ctrl + x` to exit the monitor
 
 # Going further
 
