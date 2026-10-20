@@ -1,0 +1,8 @@
+# Environnement
+.vscode/
+
+
+# ESP-IDF
+build/
+managed_components/
+sdkconfig.old
