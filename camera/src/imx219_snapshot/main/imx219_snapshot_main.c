@@ -44,6 +44,7 @@
 #include "driver/jpeg_encode.h"
 
 #include "imx_serial_img.h"
+#include "custom_format.h"
 
 /* ---- Camera pins (Waveshare ESP32-P4-WIFI6) ----------------------------- */
 #define CAM_SCCB_I2C_PORT   0
@@ -466,6 +467,8 @@ void app_main(void)
 #endif
         ioctl(fd, VIDIOC_QBUF, &b);
     }
+    ioctl(fd, VIDIOC_S_SENSOR_FMT, &custom_format_info); // set custom format
+
     ioctl(fd, VIDIOC_STREAMON, &type);
 
 #if TEST_PATTERN
