@@ -17,20 +17,13 @@ static const char *TAG = "jpeg.example";
 static sdmmc_card_t *s_card;
 #define MOUNT_POINT "/sdcard"
 
-const static char jpg_file_1080[] = "/sdcard/esp1080.jpg";
-const static char raw_file_1080[] = "/sdcard/out.rgb";
-const static char jpg_file_720[] = "/sdcard/example.jpg";
-const static char raw_file_720[] = "/sdcard/wall.rgb";
+const static char jpg_file_1080[] = "/sdcard/image.jpg";
 
 static esp_err_t sdcard_init(void)
 {
     esp_err_t ret = ESP_OK;
     esp_vfs_fat_sdmmc_mount_config_t mount_config = {
-#ifdef CONFIG_EXAMPLE_FORMAT_IF_MOUNT_FAILED
-        .format_if_mount_failed = true,
-#else
         .format_if_mount_failed = false,
-#endif // EXAMPLE_FORMAT_IF_MOUNT_FAILED
         .max_files = 5,
         .allocation_unit_size = 16 * 1024
     };
@@ -40,7 +33,6 @@ static esp_err_t sdcard_init(void)
     sdmmc_host_t host = SDMMC_HOST_DEFAULT();
     host.max_freq_khz = SDMMC_FREQ_HIGHSPEED;
 
-#if CONFIG_EXAMPLE_SDMMC_IO_POWER_INTERNAL_LDO
     sd_pwr_ctrl_ldo_config_t ldo_config = {
         .ldo_chan_id = 4, // `LDO_VO4` is used as the SDMMC IO power
     };
@@ -52,7 +44,6 @@ static esp_err_t sdcard_init(void)
         return ret;
     }
     host.pwr_ctrl_handle = pwr_ctrl_handle;
-#endif
 
     // This initializes the slot without card detect (CD) and write protect (WP) signals.
     // Modify slot_config.gpio_cd and slot_config.gpio_wp if your board has these signals.
@@ -81,19 +72,15 @@ static void sdcard_deinit(void)
 {
     const char mount_point[] = MOUNT_POINT;
     esp_vfs_fat_sdcard_unmount(mount_point, s_card);
-#if SOC_SDMMC_IO_POWER_EXTERNAL
     esp_err_t ret = sd_pwr_ctrl_del_on_chip_ldo(s_card->host.pwr_ctrl_handle);
     if (ret != ESP_OK) {
         ESP_LOGE(TAG, "Failed to delete on-chip ldo power control driver");
         return;
     }
-#endif
 }
 
-void app_main(void)
+static uint8_t* decode_jpeg(const char* file_path, uint32_t out_size)
 {
-    ESP_ERROR_CHECK(sdcard_init());
-
     jpeg_decoder_handle_t jpgd_handle;
 
     jpeg_decode_engine_cfg_t decode_eng_cfg = {
@@ -105,10 +92,6 @@ void app_main(void)
     jpeg_decode_cfg_t decode_cfg_rgb = {
         .output_format = JPEG_DECODE_OUT_FORMAT_RGB888,
         .rgb_order = JPEG_DEC_RGB_ELEMENT_ORDER_BGR,
-    };
-
-    jpeg_decode_cfg_t decode_cfg_gray = {
-        .output_format = JPEG_DECODE_OUT_FORMAT_GRAY,
     };
 
     jpeg_decode_memory_alloc_cfg_t rx_mem_cfg = {
@@ -123,7 +106,7 @@ void app_main(void)
     ESP_LOGI(TAG, "jpg_file_1080:%s", jpg_file_1080);
     if (file_jpg_1080p == NULL) {
         ESP_LOGE(TAG, "fopen file_jpg_1080p error");
-        return;
+        return NULL;
     }
 
     fseek(file_jpg_1080p, 0, SEEK_END);
@@ -133,40 +116,16 @@ void app_main(void)
     uint8_t *tx_buf_1080p = (uint8_t*)jpeg_alloc_decoder_mem(jpeg_size_1080p, &tx_mem_cfg, &tx_buffer_size_1080p);
     if (tx_buf_1080p == NULL) {
         ESP_LOGE(TAG, "alloc 1080p tx buffer error");
-        return;
+        return NULL;
     }
     fread(tx_buf_1080p, 1, jpeg_size_1080p, file_jpg_1080p);
     fclose(file_jpg_1080p);
 
-    FILE *file_jpg_720p = fopen(jpg_file_720, "rb");
-    ESP_LOGI(TAG, "jpg_file_720:%s", jpg_file_720);
-    if (file_jpg_720p == NULL) {
-        ESP_LOGE(TAG, "fopen file_jpg_720p error");
-        return;
-    }
-    fseek(file_jpg_720p, 0, SEEK_END);
-    int jpeg_size_720p = ftell(file_jpg_720p);
-    fseek(file_jpg_720p, 0, SEEK_SET);
-    size_t tx_buffer_size_720p = 0;
-    uint8_t *tx_buf_720p = (uint8_t*)jpeg_alloc_decoder_mem(jpeg_size_720p, &tx_mem_cfg, &tx_buffer_size_720p);
-    if (tx_buf_720p == NULL) {
-        ESP_LOGE(TAG, "alloc 720p tx buffer error");
-        return;
-    }
-    fread(tx_buf_720p, 1, jpeg_size_720p, file_jpg_720p);
-    fclose(file_jpg_720p);
-
     size_t rx_buffer_size_1080p = 0;
-    size_t rx_buffer_size_720p = 0;
-    uint8_t *rx_buf_1080p = (uint8_t*)jpeg_alloc_decoder_mem(1920 * 1088 * 3, &rx_mem_cfg, &rx_buffer_size_1080p);
-    uint8_t *rx_buf_720p = (uint8_t*)jpeg_alloc_decoder_mem(58368000, &rx_mem_cfg, &rx_buffer_size_720p);
-    if (rx_buf_1080p == NULL) {
+    uint8_t* out_buffer = (uint8_t*)jpeg_alloc_decoder_mem(1920 * 1088 * 3, &rx_mem_cfg, &rx_buffer_size_1080p);
+    if (out_buffer == NULL) {
         ESP_LOGE(TAG, "alloc 1080p rx buffer error");
-        return;
-    }
-    if (rx_buf_720p == NULL) {
-        ESP_LOGE(TAG, "alloc 720p rx buffer error");
-        return;
+        return NULL;
     }
 
     // Get the jpg header information (This step is optional)
@@ -174,35 +133,50 @@ void app_main(void)
     ESP_ERROR_CHECK(jpeg_decoder_get_info(tx_buf_1080p, jpeg_size_1080p, &header_info));
     ESP_LOGI(TAG, "header parsed, width is %" PRId32 ", height is %" PRId32, header_info.width, header_info.height);
 
-    // Get the jpg header information (This step is optional)
-    ESP_ERROR_CHECK(jpeg_decoder_get_info(tx_buf_720p, jpeg_size_720p, &header_info));
-    ESP_LOGI(TAG, "header parsed, width is %" PRId32 ", height is %" PRId32, header_info.width, header_info.height);
+    // decode the jpeg file in tx_buf_1080p to out_buffer
+    out_size = 0;
+    ESP_ERROR_CHECK(jpeg_decoder_process(jpgd_handle, &decode_cfg_rgb, tx_buf_1080p, jpeg_size_1080p, out_buffer, rx_buffer_size_1080p, &out_size));
 
-    uint32_t out_size_1080p = 0;
-    uint32_t out_size_720p = 0;
-    ESP_ERROR_CHECK(jpeg_decoder_process(jpgd_handle, &decode_cfg_rgb, tx_buf_1080p, jpeg_size_1080p, rx_buf_1080p, rx_buffer_size_1080p, &out_size_1080p));
-    ESP_ERROR_CHECK(jpeg_decoder_process(jpgd_handle, &decode_cfg_rgb, tx_buf_720p, jpeg_size_720p, rx_buf_720p, rx_buffer_size_720p, &out_size_720p));
+    return out_buffer;
+}
 
-    // Write two pictures.
+void app_main(void)
+{
+    ESP_ERROR_CHECK(sdcard_init());
+
+    uint32_t out_size = 0;
+    uint8_t* out_buffer = decode_jpeg(jpg_file_1080, out_size);
+    if(out_buffer == NULL) {
+        ESP_LOGE(TAG, "jpeg decoding error");
+        return;
+    }
+    // at this point, the picture is stored in PSRAM, in out_buffer, the size of this buffer is out_size
+    // the order is BGR: 
+    // - out_buffer[0] is Blue  of pixel 0
+    // - out_buffer[1] is Green of pixel 0
+    // - out_buffer[2] is Red   of pixel 0
+
+    // - out_buffer[3] is Blue  of pixel 1
+    // - out_buffer[4] is Green of pixel 1
+    // - out_buffer[5] is Red   of pixel 1
+    // ...
+
+
+#if 0
+    // Write the picture to a file on the sd card.
+    const static char raw_file_1080[] = "/sdcard/image.rgb";
+
+    ESP_LOGE(TAG, "writing");
     FILE *file_rgb_1080p = fopen(raw_file_1080, "wb");
     ESP_LOGI(TAG, "raw_file_1080:%s", raw_file_1080);
     if (file_rgb_1080p == NULL) {
         ESP_LOGE(TAG, "fopen file_rgb_1080p error");
         return;
     }
-    fwrite(rx_buf_1080p, 1, out_size_1080p, file_rgb_1080p);
+    fwrite(out_buffer, 1, out_size, file_rgb_1080p);
     fclose(file_rgb_1080p);
-
-    FILE *file_rgb_720p = fopen(raw_file_720, "wb");
-    ESP_LOGI(TAG, "raw_file_720:%s", raw_file_720);
-    if (file_rgb_720p == NULL) {
-        ESP_LOGE(TAG, "fopen file_rgb_720p error");
-        return;
-    }
-    fwrite(rx_buf_720p, 1, out_size_720p, file_rgb_720p);
-    fclose(file_rgb_720p);
+#endif
 
     sdcard_deinit();
     ESP_LOGI(TAG, "Card unmounted");
-
 }
