@@ -1,0 +1,20 @@
+dependencies:
+  idf:
+    source:
+      type: idf
+    version: 5.5.6
+  pedrominatel/shtc3:
+    component_hash: b69f53247532f928393cb91aaeaf3fe97c7bba398b5704a095ff7c73b66f39df
+    dependencies:
+    - name: idf
+      require: private
+      version: '>=5.3'
+    source:
+      registry_url: https://components.espressif.com/
+      type: service
+    version: 1.4.2
+direct_dependencies:
+- pedrominatel/shtc3
+manifest_hash: 9986a5e01ec122cb85073f4514614a9dc214b882fae2cbb3cb4eb0a3fad64f9b
+target: esp32c6
+version: 2.0.0
