@@ -79,7 +79,7 @@ static void sdcard_deinit(void)
     }
 }
 
-static uint8_t* decode_jpeg(const char* file_path, uint32_t out_size)
+static uint8_t* decode_jpeg(const char* file_path, uint32_t *out_size)
 {
     jpeg_decoder_handle_t jpgd_handle;
 
@@ -134,8 +134,7 @@ static uint8_t* decode_jpeg(const char* file_path, uint32_t out_size)
     ESP_LOGI(TAG, "header parsed, width is %" PRId32 ", height is %" PRId32, header_info.width, header_info.height);
 
     // decode the jpeg file in tx_buf_1080p to out_buffer
-    out_size = 0;
-    ESP_ERROR_CHECK(jpeg_decoder_process(jpgd_handle, &decode_cfg_rgb, tx_buf_1080p, jpeg_size_1080p, out_buffer, rx_buffer_size_1080p, &out_size));
+    ESP_ERROR_CHECK(jpeg_decoder_process(jpgd_handle, &decode_cfg_rgb, tx_buf_1080p, jpeg_size_1080p, out_buffer, rx_buffer_size_1080p, out_size));
 
     return out_buffer;
 }
@@ -145,11 +144,27 @@ void app_main(void)
     ESP_ERROR_CHECK(sdcard_init());
 
     uint32_t out_size = 0;
-    uint8_t* out_buffer = decode_jpeg(jpg_file_1080, out_size);
+    uint8_t* out_buffer = decode_jpeg(jpg_file_1080, &out_size);
     if(out_buffer == NULL) {
         ESP_LOGE(TAG, "jpeg decoding error");
         return;
     }
+    uint32_t blue_total = 0;
+    uint32_t green_total = 0;
+    uint32_t red_total = 0;
+
+    for(int i = 0; i < out_size; i+=3)
+    {
+        blue_total += out_buffer[i];
+        green_total += out_buffer[i + 1];
+        red_total += out_buffer[i + 2];
+    }
+    float blue_avg = (float)blue_total / (out_size / 3);
+    float green_avg = (float)green_total / (out_size / 3);
+    float red_avg = (float)red_total / (out_size / 3);
+    ESP_LOGI(TAG, "Average color values: Blue: %.2f, Green: %.2f, Red: %.2f", blue_avg, green_avg, red_avg);
+    ESP_LOGI(TAG, "total color values: Blue: %u, Green: %u, Red: %u", (uint32_t)blue_total, (uint32_t)green_total, (uint32_t)red_total);
+    // image size: 1920*1080
     // at this point, the picture is stored in PSRAM, in out_buffer, the size of this buffer is out_size
     // the order is BGR: 
     // - out_buffer[0] is Blue  of pixel 0
@@ -162,7 +177,7 @@ void app_main(void)
     // ...
 
 
-#if 0
+#if 1
     // Write the picture to a file on the sd card.
     const static char raw_file_1080[] = "/sdcard/image.rgb";
 
