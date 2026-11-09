@@ -1,3 +1,3 @@
-idf_component_register(SRCS "i2c_eeprom.c"
+idf_component_register(SRCS "ina260.c"
                     INCLUDE_DIRS "."
                     PRIV_REQUIRES esp_driver_i2c)
