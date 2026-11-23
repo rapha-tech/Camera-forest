@@ -443,6 +443,8 @@ void app_main(void)
         ESP_LOGE(TAG, "expected RGB565 from the ISP - the frame below will be garbage");
     }
 
+    ioctl(fd, VIDIOC_S_SENSOR_FMT, &custom_format_info); // set custom format
+
     uint8_t *buffer[BUFFER_COUNT] = {0};
 #if POISON_BUFFERS
     uint32_t buf_len[BUFFER_COUNT] = {0};
@@ -467,7 +469,6 @@ void app_main(void)
 #endif
         ioctl(fd, VIDIOC_QBUF, &b);
     }
-    ioctl(fd, VIDIOC_S_SENSOR_FMT, &custom_format_info); // set custom format
 
     ioctl(fd, VIDIOC_STREAMON, &type);
 
