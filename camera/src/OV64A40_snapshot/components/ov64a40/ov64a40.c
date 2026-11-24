@@ -672,6 +672,14 @@ static esp_err_t imx219_set_format(esp_cam_sensor_device_t *dev, const esp_cam_s
     ret = ov64a40_write_array(dev->sccb_handle, (const ov64a40_reginfo_t *)format->regs);
     ESP_RETURN_ON_FALSE(ret == ESP_OK, ret, TAG, "write mode regs failed");
 
+    /* Match Linux's masked subsampling updates; preserve flip and timing bits. */
+    ret = ov64a40_set_reg_bits(dev->sccb_handle, OV64A40_REG_TIMING_CTRL_20, 1, 1, 1);
+    ESP_RETURN_ON_FALSE(ret == ESP_OK, ret, TAG, "set vertical binning failed");
+    ret = ov64a40_set_reg_bits(dev->sccb_handle, OV64A40_REG_TIMING_CTRL_21, 4, 1, 1);
+    ESP_RETURN_ON_FALSE(ret == ESP_OK, ret, TAG, "set horizontal binning failed");
+    ret = ov64a40_set_reg_bits(dev->sccb_handle, OV64A40_REG_TIMING_CTRL_21, 0, 1, 1);
+    ESP_RETURN_ON_FALSE(ret == ESP_OK, ret, TAG, "set horizontal data speed failed");
+
     /* Before the exposure write: its ceiling is derived from the mode's VTS,
        so cur_format has to already be the mode whose registers just went in. */
     ret = ov64a40_select_format(dev, format);
