@@ -24,20 +24,11 @@ CONFIG_ESP_VIDEO_ENABLE_MIPI_CSI_VIDEO_DEVICE=y
 CONFIG_ESP_VIDEO_ENABLE_ISP_VIDEO_DEVICE=y
 CONFIG_ESP_VIDEO_ENABLE_ISP_PIPELINE_CONTROLLER=y
 
-# IMX219 driver + auto-detect. The IMX708 is switched off rather than left at
-# its default: both drivers register into the same esp_cam_sensor auto-detect
-# array, and with both compiled in the probe order decides which one claims the
-# bus. They sit at different addresses (0x10 vs 0x1a) so it would work either
-# way, but a build for one sensor should not carry the other's register tables.
-CONFIG_CAMERA_IMX219=y
-CONFIG_CAMERA_IMX219_AUTO_DETECT_MIPI_INTERFACE_SENSOR=y
-CONFIG_CAMERA_IMX708=n
+# OV64A40 driver + auto-detect.
+CONFIG_CAMERA_OV64A40=y
+CONFIG_CAMERA_OV64A40_AUTO_DETECT_MIPI_INTERFACE_SENSOR=y
 
-# No autofocus. The Camera Module v2 is fixed-focus and has no VCM on the bus,
-# so the motor driver, the AF algorithm and the pipeline's motor control are all
-# left off. Turning them on would cost a failed DW9807 probe at start-up and an
-# "af" block that no actuator can act on.
-CONFIG_CAM_MOTOR_DW9807=n
+# No autofocus algorithm for this bring-up.
 CONFIG_ESP_IPA_AF_ALGORITHM=n
 
 # FAT long filenames on the SD card

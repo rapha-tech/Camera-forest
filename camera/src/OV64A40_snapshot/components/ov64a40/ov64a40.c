@@ -56,7 +56,7 @@ static const esp_cam_sensor_isp_info_t ov64a40_isp_info[] = {
             .exp_def = IMX219_EXPOSURE_DEFAULT,
             .gain_def = IMX219_ANA_GAIN_DEFAULT,
             .tline_ns = OV64A40_TLINE_NS,
-            .bayer_type = ESP_CAM_SENSOR_BAYER_RGGB,
+            .bayer_type = ESP_CAM_SENSOR_BAYER_BGGR,
         }
     }
 };
@@ -153,7 +153,8 @@ static const uint16_t ov64a40_ana_gain_code_map[] = {
 /* Bayer phase                                                         */
 /* ------------------------------------------------------------------ */
 /*
- * Bayer phase by flip state, indexed (vflip << 1) | hmirror.
+ * Bayer phase by flip state, indexed (hmirror << 1) | vflip, matching the
+ * Linux OV64A40 driver's media-bus code selection.
  *
  * A flip does not mirror the picture behind a fixed colour mosaic. It reverses
  * the order pixels leave the array in, so the 2x2 tile the ISP has to
@@ -162,17 +163,15 @@ static const uint16_t ov64a40_ana_gain_code_map[] = {
  * simply wrong. Raspberry Pi's driver does the same thing by swapping the
  * media-bus code across four entries.
  *
- * The unflipped phase is RGGB for all three modes because every readout window
- * starts on a multiple of 4 in both axes - see the note on the 1632 mode in
- * imx219_settings.h, which is where that was reasoned out. So this table sits
- * on top of one base phase; a mode with an odd window origin would need its
- * own, exactly as an odd origin already swaps red and blue with no flip at all.
+ * The Linux driver reports SBGGR10 with no flip, then SGRBG, SGBRG, and SRGGB
+ * for indices 1 through 3. The 1920x1080 readout starts at even x/y offsets,
+ * so its CFA phase agrees with that base order.
  */
 static const esp_cam_sensor_bayer_pattern_t imx219_bayer_by_flip[4] = {
-    [0] = ESP_CAM_SENSOR_BAYER_RGGB,    /* no flip  */
-    [1] = ESP_CAM_SENSOR_BAYER_GRBG,    /* h mirror */
-    [2] = ESP_CAM_SENSOR_BAYER_GBRG,    /* v flip   */
-    [3] = ESP_CAM_SENSOR_BAYER_BGGR,    /* both     */
+    [0] = ESP_CAM_SENSOR_BAYER_BGGR,    /* no flip */
+    [1] = ESP_CAM_SENSOR_BAYER_GRBG,    /* vflip   */
+    [2] = ESP_CAM_SENSOR_BAYER_GBRG,    /* hmirror */
+    [3] = ESP_CAM_SENSOR_BAYER_RGGB,    /* both    */
 };
 
 /*
@@ -191,8 +190,8 @@ static const esp_cam_sensor_bayer_pattern_t imx219_bayer_by_flip[4] = {
 typedef struct {
     uint32_t exposure_val;      /*!< current exposure, in lines */
     uint32_t gain_index;        /*!< index into imx219_total_gain_val_map */
-    uint8_t  hmirror;           /*!< 0x0172 bit 0 */
-    uint8_t  vflip;             /*!< 0x0172 bit 1 */
+    uint8_t  hmirror;           /*!< 0x3821 bit 2 (active low) */
+    uint8_t  vflip;             /*!< 0x3820 bit 2 */
     esp_cam_sensor_format_t   format;
     esp_cam_sensor_isp_info_t isp_info;
 } imx219_para_t;
@@ -302,10 +301,8 @@ static esp_err_t imx219_hw_reset(esp_cam_sensor_device_t *dev)
 /*
  * Push the cached flip state to the sensor and to the shadow isp_info.
  *
- * Both bits are written together as a whole byte. The driver owns every bit of
- * the orientation register, so there is nothing to preserve, and a
- * read-modify-write per bit would leave it momentarily holding a combination
- * the caller never asked for.
+ * Update only the orientation bits: the neighboring bits control binning and
+ * pixel timing. OV64A40 horizontal flip is active-low; vertical flip is active-high.
  *
  * Note what the ISP does and does not see. esp_video latches bayer_type into
  * its own CSI state inside update_format_config(), which runs at device open
@@ -318,25 +315,21 @@ static esp_err_t imx219_hw_reset(esp_cam_sensor_device_t *dev)
 static esp_err_t imx219_apply_orientation(esp_cam_sensor_device_t *dev)
 {
     imx219_para_t *para = (imx219_para_t *)dev->priv;
-    uint8_t regval = 0;
-
     if (para == NULL) {
         return ESP_ERR_INVALID_STATE;
     }
-    if (para->hmirror) {
-        regval |= IMX219_ORIENTATION_HMIRROR;
+    esp_err_t ret = ov64a40_set_reg_bits(dev->sccb_handle, OV64A40_REG_TIMING_CTRL_21,
+                                         2, 1, para->hmirror ? 0 : 1);
+    if (ret == ESP_OK) {
+        ret = ov64a40_set_reg_bits(dev->sccb_handle, OV64A40_REG_TIMING_CTRL_20,
+                                   2, 1, para->vflip);
     }
-    if (para->vflip) {
-        regval |= IMX219_ORIENTATION_VFLIP;
-    }
-
-    esp_err_t ret = ov64a40_write(dev->sccb_handle, IMX219_REG_ORIENTATION, regval);
     if (ret != ESP_OK) {
         return ret;
     }
 
     para->isp_info.isp_v1_info.bayer_type =
-        imx219_bayer_by_flip[(para->vflip ? 2 : 0) | (para->hmirror ? 1 : 0)];
+        imx219_bayer_by_flip[(para->hmirror ? 2 : 0) | (para->vflip ? 1 : 0)];
     return ESP_OK;
 }
 
@@ -538,20 +531,21 @@ static esp_err_t imx219_get_para_value(esp_cam_sensor_device_t *dev, uint32_t id
 static esp_err_t imx219_set_para_value(esp_cam_sensor_device_t *dev, uint32_t id, const void *arg, size_t size)
 {
     esp_err_t ret = ESP_OK;
+
+    if (arg == NULL || size < sizeof(uint32_t)) {
+        return ESP_ERR_INVALID_ARG;
+    }
+
     ESP_LOGI(TAG, "set para value id: %d", id);
     switch(id){
     case ESP_CAM_SENSOR_VFLIP: {
-        /*
         const imx219_para_t *para = (const imx219_para_t *)dev->priv;
         ret = imx219_set_orientation(dev, para ? para->hmirror : 0, *(const int *)arg);
-        */
         break;
     }
     case ESP_CAM_SENSOR_HMIRROR: {
-        /*
         const imx219_para_t *para = (const imx219_para_t *)dev->priv;
         ret = imx219_set_orientation(dev, *(const int *)arg, para ? para->vflip : 0);
-        */
         break;
     }
     case ESP_CAM_SENSOR_EXPOSURE_VAL:

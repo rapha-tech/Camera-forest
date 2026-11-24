@@ -470,7 +470,7 @@ void app_main(void)
 #if TEST_PATTERN
     {
         struct v4l2_ext_control c = { .id = V4L2_CID_TEST_PATTERN, .value = 1 };
-        struct v4l2_ext_controls cs = { .ctrl_class = V4L2_CTRL_CLASS_USER, .count = 1, .controls = &c };
+        struct v4l2_ext_controls cs = { .ctrl_class = V4L2_CTRL_CLASS_IMAGE_PROC, .count = 1, .controls = &c };
         if (ioctl(fd, VIDIOC_S_EXT_CTRLS, &cs) != 0) {
             ESP_LOGW(TAG, "test pattern not accepted - capturing the live scene instead");
         } else {
