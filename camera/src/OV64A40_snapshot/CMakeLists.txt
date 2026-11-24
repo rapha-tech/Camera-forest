@@ -17,12 +17,8 @@ cmake_minimum_required(VERSION 3.16)
 # exist yet at this point on a clean build - the dependency solver runs inside
 # project() - whereas the component root either is in this checkout or is not.
 set(imx_component_root "${CMAKE_CURRENT_LIST_DIR}/../..")
-if(EXISTS "${imx_component_root}/idf_component.yml")
-    set(imx219_ipa_json "${imx_component_root}/sensors/imx219/cfg/imx219_default.json")
-else()
-    set(imx219_ipa_json
-        "managed_components/mushbraindave__esp_cam_sensor_imx/sensors/imx219/cfg/imx219_default.json")
-endif()
+set(ov64a40_ipa_json
+    "components/ov64a40/cfg/ov64a40_default.json")
 
 include($ENV{IDF_PATH}/tools/cmake/project.cmake)
 
@@ -40,8 +36,8 @@ include($ENV{IDF_PATH}/tools/cmake/project.cmake)
 # prints a line and the build carries on to produce a stream with no
 # auto-exposure and no white balance. main/CMakeLists.txt re-checks the
 # resolved path and fails the build instead.
-idf_build_set_property(ESP_IPA_JSON_CONFIG_FILE_PATH "${imx219_ipa_json}" APPEND)
-idf_build_set_property(IMX219_IPA_JSON_RESOLVED "${imx219_ipa_json}")
+idf_build_set_property(ESP_IPA_JSON_CONFIG_FILE_PATH "${ov64a40_ipa_json}" APPEND)
+idf_build_set_property(OV64A40_IPA_JSON_RESOLVED "${ov64a40_ipa_json}")
 
 # ---------------------------------------------------------------------------
 # ABI fix: make esp_ipa_stats_t match the prebuilt esp_ipa binary.

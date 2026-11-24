@@ -44,7 +44,6 @@
 #include "driver/jpeg_encode.h"
 
 #include "imx_serial_img.h"
-#include "custom_format.h"
 
 /* ---- Camera pins (Waveshare ESP32-P4-WIFI6) ----------------------------- */
 #define CAM_SCCB_I2C_PORT   0
@@ -78,7 +77,7 @@
  * happened, so if the luma column is still climbing when the window closes,
  * raise this rather than guessing.
  */
-#define AIM_SECONDS         4
+#define AIM_SECONDS         1
 
 /*
  * Where captured frames go.
@@ -443,8 +442,6 @@ void app_main(void)
         ESP_LOGE(TAG, "expected RGB565 from the ISP - the frame below will be garbage");
     }
 
-    ioctl(fd, VIDIOC_S_SENSOR_FMT, &custom_format_info); // set custom format
-
     uint8_t *buffer[BUFFER_COUNT] = {0};
 #if POISON_BUFFERS
     uint32_t buf_len[BUFFER_COUNT] = {0};
@@ -524,7 +521,8 @@ void app_main(void)
      * initialize ISP controller", which is easy to miss in the boot log.
      */
     uint32_t t_start = esp_log_timestamp();
-    uint32_t t_end = t_start + AIM_SECONDS * 1000;
+    //uint32_t t_end = t_start + AIM_SECONDS * 1000;
+    uint32_t t_end = t_start + 10;
     uint32_t luma_prev = UINT32_MAX;
     int exp_prev = -2, gain_prev = -2;   /* -1 is "no such control", so start outside it */
     uint32_t luma_first = 0, luma_last = 0;
