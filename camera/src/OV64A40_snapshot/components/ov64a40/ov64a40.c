@@ -27,7 +27,7 @@
 #endif
 #define delay_ms(ms) vTaskDelay((ms > portTICK_PERIOD_MS ? ms / portTICK_PERIOD_MS : 1))
 
-/* Fixed sensor timing (2-lane): pixel rate 182.4 MHz, HTS 3448 pixels. */
+/* ISP timing for the 1920x1080 mode; sensor PPL=880, VTS=1397 at 60 fps. */
 #define OV64A40_PIXEL_RATE         300000000 // from linux driver
 #define OV64A40_HTS                3520
 #define OV64A40_TLINE_NS           11733   /* HTS / pixel_rate, in ns */
@@ -44,6 +44,7 @@ static const char *TAG = "ov64a40";
 enum {
     OV64A40_FMT_1920x1080 = 0,
 };
+#define OV64A40_FORMAT_COUNT 1
 
 static const esp_cam_sensor_isp_info_t ov64a40_isp_info[] = {
     [OV64A40_FMT_1920x1080] = {
@@ -102,8 +103,8 @@ static const esp_cam_sensor_format_t imx219_format_info[] = {
 
 #define IMX219_DEFAULT_FORMAT_INDEX CONFIG_CAMERA_OV64A40_MIPI_IF_FORMAT_INDEX_DEFAULT
 
-#if IMX219_DEFAULT_FORMAT_INDEX >= 3
-#error "CAMERA_OV64A40_MIPI_IF_FORMAT_INDEX_DEFAULT is out of range - see the mode table above"
+#if IMX219_DEFAULT_FORMAT_INDEX >= OV64A40_FORMAT_COUNT
+#error "CAMERA_OV64A40_MIPI_IF_FORMAT_INDEX_DEFAULT selects an unsupported mode"
 #endif
 
 /* ------------------------------------------------------------------ */
@@ -452,8 +453,8 @@ static esp_err_t imx219_set_digital_gain(esp_cam_sensor_device_t *dev, uint32_t 
 
 static esp_err_t imx219_set_test_pattern(esp_cam_sensor_device_t *dev, int enable)
 {
-    return ov64a40_write16(dev->sccb_handle, IMX219_REG_TEST_PATTERN_H,
-                          enable ? IMX219_TEST_PATTERN_COLORBARS : IMX219_TEST_PATTERN_DISABLE);
+    return ov64a40_write(dev->sccb_handle, OV64A40_REG_TEST_PATTERN,
+                         enable ? OV64A40_TEST_PATTERN_TYPE1 : OV64A40_TEST_PATTERN_DISABLED);
 }
 
 static esp_err_t imx219_query_para_desc(esp_cam_sensor_device_t *dev, esp_cam_sensor_param_desc_t *qdesc)

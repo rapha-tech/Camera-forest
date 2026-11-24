@@ -3,9 +3,9 @@
  *
  * SPDX-License-Identifier: Apache-2.0
  *
- * IMX219 single-frame snapshot for the Waveshare ESP32-P4-WIFI6.
+ * OV64A40 single-frame snapshot for the Waveshare ESP32-P4-WIFI6.
  *
- * Streams the IMX219 (Raspberry Pi Camera Module v2 / NoIR v2), holds for a few
+ * Streams the OV64A40 camera module, holds for a few
  * seconds so the ISP's auto-exposure and white balance can converge, then keeps
  * one frame and ships it down the console UART as a JPEG. tools/capture.py at
  * the repo root receives it and writes the .jpg.
@@ -65,7 +65,7 @@
 #define SD_D2_PIN           41
 #define SD_D3_PIN           42
 
-#define OUT_PATH            SD_MOUNT_POINT "/imx219.bmp"
+#define OUT_PATH            SD_MOUNT_POINT "/ov64a40.bmp"
 
 /*
  * Settling time before the keeper frame.
@@ -96,7 +96,7 @@
 /*
  * Sensor flip for this build. 0/0 is the normal picture; set either to 1 to
  * mirror or invert the readout. The frame is named after the state, so a set of
- * builds lands as imx219, imx219_h, imx219_v and can be compared directly.
+ * builds lands as ov64a40, ov64a40_h, ov64a40_v and can be compared directly.
  */
 #define FLIP_H              0
 #define FLIP_V              0
@@ -135,7 +135,7 @@
 #define CAM_DEV_PATH        ESP_VIDEO_MIPI_CSI_DEVICE_NAME
 #define BUFFER_COUNT        2
 
-static const char *TAG = "imx219_snapshot";
+static const char *TAG = "ov64a40_snapshot";
 
 static const esp_video_init_csi_config_t csi_config[] = {{
     .sccb_config = {
@@ -373,7 +373,7 @@ static uint32_t frame_luma(const uint8_t *rgb565, uint32_t w, uint32_t h)
 
 void app_main(void)
 {
-    ESP_LOGI(TAG, "IMX219 snapshot");
+    ESP_LOGI(TAG, "OV64A40 snapshot");
 
 #if IMAGE_OUT_SD
     if (sd_mount() != ESP_OK) {
@@ -467,8 +467,6 @@ void app_main(void)
         ioctl(fd, VIDIOC_QBUF, &b);
     }
 
-    ioctl(fd, VIDIOC_STREAMON, &type);
-
 #if TEST_PATTERN
     {
         struct v4l2_ext_control c = { .id = V4L2_CID_TEST_PATTERN, .value = 1 };
@@ -480,6 +478,8 @@ void app_main(void)
         }
     }
 #endif
+
+    ioctl(fd, VIDIOC_STREAMON, &type);
 
     struct v4l2_buffer buf;
 
@@ -521,8 +521,7 @@ void app_main(void)
      * initialize ISP controller", which is easy to miss in the boot log.
      */
     uint32_t t_start = esp_log_timestamp();
-    //uint32_t t_end = t_start + AIM_SECONDS * 1000;
-    uint32_t t_end = t_start + 10;
+    uint32_t t_end = t_start + AIM_SECONDS * 1000;
     uint32_t luma_prev = UINT32_MAX;
     int exp_prev = -2, gain_prev = -2;   /* -1 is "no such control", so start outside it */
     uint32_t luma_first = 0, luma_last = 0;
@@ -560,7 +559,7 @@ void app_main(void)
     if (luma_first == luma_last) {
         ESP_LOGW(TAG, "mean luma never moved (%" PRIu32 ") - AE is probably not running. "
                       "Check for 'failed to get configuration to initialize ISP controller' "
-                      "above, which means the IMX219 IPA config did not load.",
+                      "above, which means the OV64A40 IPA config did not load.",
                  luma_last);
     } else {
         ESP_LOGI(TAG, "AE settled: luma %" PRIu32 " -> %" PRIu32 ", exposure %d lines, gain index %d",
@@ -586,7 +585,7 @@ void app_main(void)
     {
         const uint8_t *frame = stage_frame(fd, &buf, w, h, buffer);
 #if IMAGE_OUT_SERIAL
-        serial_send_jpeg("imx219" FLIP_SUFFIX, frame, w, h);
+        serial_send_jpeg("ov64a40" FLIP_SUFFIX, frame, w, h);
 #endif
 #if IMAGE_OUT_SD
         save_bmp565(OUT_PATH, frame, w, h);
@@ -602,7 +601,7 @@ done:
 #if IMAGE_OUT_SD
     esp_vfs_fat_sdcard_unmount(SD_MOUNT_POINT, s_card);
     if (s_pwr_handle) { sd_pwr_ctrl_del_on_chip_ldo(s_pwr_handle); }
-    ESP_LOGI(TAG, "==== done — remove the SD card and open imx219.bmp on your PC ====");
+    ESP_LOGI(TAG, "==== done — remove the SD card and open ov64a40.bmp on your PC ====");
 #else
     ESP_LOGI(TAG, "==== done — frame sent over serial, no card needed ====");
 #endif

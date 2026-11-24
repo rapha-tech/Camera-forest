@@ -22,7 +22,7 @@ set(ov64a40_ipa_json
 
 include($ENV{IDF_PATH}/tools/cmake/project.cmake)
 
-# Hand the IMX219's ISP tuning config to esp_ipa. This has to sit between
+# Hand the OV64A40's ISP tuning config to esp_ipa. This has to sit between
 # project.cmake and project(): esp_ipa reads the property while its own
 # CMakeLists is processed, which is too late for a component to set it.
 #
@@ -69,4 +69,4 @@ if(IDF_VERSION_MAJOR EQUAL 5 AND IDF_VERSION_MINOR EQUAL 4 AND IDF_VERSION_PATCH
     idf_build_set_property(COMPILE_DEFINITIONS "ISP_AWB_WINDOW_Y_NUM=5" APPEND)
 endif()
 
-project(imx219_snapshot)
+project(ov64a40_snapshot)

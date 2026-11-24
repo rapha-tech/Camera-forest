@@ -1,9 +1,9 @@
 {
     "version": 1,
-    "IMX219":
+    "OV64A40":
     {
         "adn": {
-            "//": "Bilateral denoise, keyed on total gain. The IMX219's 1.12 um pixel is noisier than the IMX708's at equal gain, so the top of the ladder is a little stronger than that sensor's.",
+            "//": "Initial denoise settings; not calibrated for this sensor.",
             "bf":
             [
                 {
@@ -53,12 +53,12 @@
             },
             "gain":
             {
-                "//max": "10.667x, not the IMX708's 16x. This is the sensor's real ceiling: analog gain is 256/(256-code) with code capped at 232, so the driver's gain menu ends at 10667 milli-units. Asking for more than the menu's last entry only pins the AE at that entry while it still believes it has headroom, which reads as an AE that has stopped responding.",
+                "//max": "Matches the gain range currently exposed by the driver; verify against measured OV64A40 gain.",
                 "min_step": 0.0001,
                 "frame_delay": 2,
                 "max": 10.667
             },
-            "//anti_flicker": "60 Hz mains. MEASURED consequence on the 1640x1232 mode (2026-09-01): the AE only picks exposures that are whole multiples of 1/120 s, which at this mode's 18.904 us line time is 440.8 lines - so the legal exposures are 441, 882, 1322 and 1763 lines. The fourth is 1763, four lines ABOVE the 1759 ceiling (VTS 1763 - 4), so it can never be taken and AE pins at 1322 lines with a third of a stop it is not allowed to use. Combined with this sensor's 10.667x gain ceiling that is what a dim-room frame runs into. Setting mode to off recovers the third of a stop at the cost of banding under mains lighting; raising VTS recovers it at the cost of frame rate. Neither is the right default.",
+            "//anti_flicker": "Recheck the 60 Hz anti-flicker behavior after sensor timing is validated.",
             "anti_flicker":
             {
                 "mode": "full",
@@ -173,7 +173,7 @@
         },
         "awb":
         {
-            "//range": "Deliberately wider than the IMX708's rg/bg bounds. Those were narrowed around a white point measured on THAT module; reusing them here would be a guess that fails in the worse direction - if no pixel falls inside the box, min_counted is never reached and AWB simply never updates, which presents as a colour cast rather than as a broken config. Narrow these once an IMX219 white point has actually been measured.",
+            "//range": "Broad initial bounds; calibrate against a measured OV64A40 white point.",
             "model": 0,
             "min_counted": 1000,
             "min_red_gain_step": 0.5,
@@ -198,7 +198,7 @@
                     "value": 128
                 }
             ],
-            "//ccm": "IDENTITY - the IMX219 colour matrix has NOT been calibrated. The IMX708's tuned matrix is deliberately not copied here: a CCM is a per-sensor, per-CFA measurement, and a borrowed one would look like tuning while being an unmeasured guess. Expect flat, slightly desaturated colour until this is measured against a colour chart. The NoIR variant has no IR-cut filter, so infrared contaminates all three channels and any calibration has to be done under the light the camera will actually work in.",
+            "//ccm": "IDENTITY - the OV64A40 colour matrix has not been calibrated.",
             "ccm":
             {
                 "low_luma":
