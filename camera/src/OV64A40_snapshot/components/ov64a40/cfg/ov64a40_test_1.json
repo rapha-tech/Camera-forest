@@ -1,0 +1,236 @@
+{
+    "version": 1,
+    "OV64A40":
+    {
+        "adn": {
+            "//": "Initial denoise settings; not calibrated for this sensor.",
+            "bf":
+            [
+                {
+                    "gain": 1,
+                    "param": {
+                        "level": 3,
+                        "matrix":
+                        [
+                            1, 2, 1,
+                            2, 4, 2,
+                            1, 2, 1
+                        ]
+                    }
+                },
+                {
+                    "gain": 4,
+                    "param": {
+                        "level": 6,
+                        "matrix":
+                        [
+                            1, 2, 1,
+                            2, 4, 2,
+                            1, 2, 1
+                        ]
+                    }
+                },
+                {
+                    "gain": 8,
+                    "param": {
+                        "level": 9,
+                        "matrix":
+                        [
+                            1, 2, 1,
+                            2, 4, 2,
+                            1, 2, 1
+                        ]
+                    }
+                }
+            ]
+        },
+        "agc":
+        {
+            "exposure":
+            {
+                "frame_delay": 2,
+                "adjust_delay": 0
+            },
+            "gain":
+            {
+                "//max": "Matches the gain range currently exposed by the driver; verify against measured OV64A40 gain.",
+                "min_step": 0.0001,
+                "frame_delay": 2,
+                "max": 10.667
+            },
+            "//anti_flicker": "Recheck the 60 Hz anti-flicker behavior after sensor timing is validated.",
+            "anti_flicker":
+            {
+                "mode": "full",
+                "ac_freq": 50
+            },
+            "f_n0": 1,
+            "luma_adjust":
+            {
+                "target_low": 50,
+                "target_high": 150,
+                "target": 100,
+                "low_threshold": 30,
+                "low_regions": 10,
+                "high_threshold": 220,
+                "high_regions": 10,
+                "weight":
+                [
+                    1, 1, 1, 1, 1,
+                    1, 2, 2, 2, 1,
+                    1, 2, 4, 2, 1,
+                    1, 2, 2, 2, 1,
+                    1, 1, 1, 1, 1
+                ]
+            },
+            "mode": "high_light_priority",
+            "high_light_priority":
+            {
+                "low_threshold": 120,
+                "high_threshold": 180,
+                "weight_offset": 5,
+                "luma_offset": -5
+            },
+            "low_light_priority":
+            {
+                "low_threshold": 40,
+                "high_threshold": 80,
+                "weight_offset": 10,
+                "luma_offset": 10
+            }
+        },
+        "aen": {
+            "gamma":
+            {
+                "use_gamma_param": true,
+                "luma_env": "ae.luma.avg",
+                "luma_min_step": 16.0,
+                "table":
+                [
+                    {
+                        "luma": 71.1,
+                        "gamma_param": 0.72
+                    }
+                ]
+            },
+            "sharpen":
+            [
+                {
+                    "gain": 1,
+                    "param": {
+                        "h_thresh": 56,
+                        "l_thresh": 10,
+                        "h_coeff": 0.400,
+                        "m_coeff": 0.600,
+                        "matrix":
+                        [
+                            1, 2, 1,
+                            2, 2, 2,
+                            1, 2, 1
+                        ]
+                    }
+                },
+                {
+                    "gain": 8,
+                    "param": {
+                        "h_thresh": 80,
+                        "l_thresh": 24,
+                        "h_coeff": 0.250,
+                        "m_coeff": 0.350,
+                        "matrix":
+                        [
+                            1, 2, 1,
+                            2, 2, 2,
+                            1, 2, 1
+                        ]
+                    }
+                }
+            ],
+            "contrast":
+            [
+                {
+                    "gain": 1,
+                    "value": 130
+                }
+            ]
+        },
+        "ian":
+        {
+            "luma":
+            {
+                "ae":
+                {
+                    "weight":
+                    [
+                        1, 1, 1, 1, 1,
+                        1, 2, 2, 2, 1,
+                        1, 2, 4, 2, 1,
+                        1, 2, 2, 2, 1,
+                        1, 1, 1, 1, 1
+                    ]
+                }
+            }
+        },
+        "awb": {
+            "model": 0,
+            "min_counted": 1000,
+            "min_red_gain_step": 0.05,
+            "min_blue_gain_step": 0.05,
+            "red_gain_scale": 1.0,
+            "blue_gain_scale": 1.0,
+            "range": {
+                "green": {
+                    "max": 220,
+                    "min": 180
+                },
+                "rg": {
+                    "max": 1.2,
+                    "min": 0.3
+                },
+                "bg": {
+                    "max": 1.2,
+                    "min": 0.3
+                }
+            },
+            "green_luma_env": "ae.luma.avg",
+            "green_luma_init": 200,
+            "green_luma_step_ratio": 0.3
+        },
+        "acc": {
+            "saturation":
+            [
+                {
+                    "color_temp": 0,
+                    "value": 128
+                }
+            ],
+            "//ccm": "IDENTITY - the OV64A40 colour matrix has not been calibrated.",
+            "ccm":
+            {
+                "low_luma":
+                {
+                    "luma_env": "ae.luma.avg",
+                    "threshold": 28,
+                    "matrix":
+                    [
+                        1.00, 0.00, 0.00,
+                        0.00, 1.00, 0.00,
+                        0.00, 0.00, 1.00
+                    ]
+                },
+                "table":
+                [
+                    {
+                        "color_temp": 3000,
+                        "matrix":
+                        [
+                            1.73, -0.19, -0.54,
+                            -0.44, 2.05, -0.60,
+                            -0.13, -0.95, 2.08
+                        ]
+                    }
+                ]
+            }
+        }
+    }
+}
